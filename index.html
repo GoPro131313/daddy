@@ -1,1 +1,330 @@
-<html>DADDY 😋🍆</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cookie Clicker 🍪</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: #542b18;
+  background: linear-gradient(135deg,#ffe6b3,#f8c982);
+  min-height: 100vh;
+}
+header {
+  text-align: center;
+  padding: 20px;
+  background: #8b4a24;
+  color: white;
+  box-shadow: 0 4px 10px #0002;
+}
+header h1 { margin: 0; font-size: 32px; }
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 1000px;
+  margin: 25px auto;
+  padding: 15px;
+}
+.panel {
+  background: #fff8e9;
+  border: 3px solid #d49a56;
+  border-radius: 20px;
+  padding: 22px;
+  text-align: center;
+  box-shadow: 0 5px 12px #0002;
+}
+.stats { font-size: 22px; font-weight: bold; }
+.small { font-size: 14px; color: #986d4b; }
+.cookie-area {
+  min-height: 330px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+#cookie {
+  border: none;
+  background: none;
+  font-size: 175px;
+  cursor: pointer;
+  transition: transform .08s;
+  filter: drop-shadow(0 8px 5px #75401c55);
+  user-select: none;
+}
+#cookie:hover { transform: scale(1.06); }
+#cookie:active { transform: scale(.91); }
+.shop-title { font-size: 25px; margin-top: 0; }
+.upgrade {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: 2px solid #d9a56e;
+  background: #ffedcf;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  color: #542b18;
+  transition: .15s;
+}
+.upgrade:hover:not(:disabled) {
+  background: #ffe0a9;
+  transform: translateY(-2px);
+}
+.upgrade:disabled { opacity: .5; cursor: not-allowed; }
+.upgrade .emoji { font-size: 32px; }
+.upgrade .details { flex: 1; }
+.upgrade strong { font-size: 16px; }
+.upgrade small { display: block; margin-top: 5px; }
+.float {
+  position: absolute;
+  font-weight: bold;
+  font-size: 24px;
+  color: #a65a1d;
+  pointer-events: none;
+  animation: rise 1s forwards;
+}
+@keyframes rise {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100px); }
+}
+#message {
+  min-height: 24px;
+  color: #a35d19;
+  font-weight: bold;
+}
+footer { text-align: center; padding: 20px; }
+button.reset {
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: #9b4e29;
+  color: white;
+  cursor: pointer;
+}
+@media(max-width:650px) {
+  main { grid-template-columns: 1fr; }
+  #cookie { font-size: 145px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🍪 Cookie Clicker 🍪</h1>
+  <p>The ultimate cookie empire!</p>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="stats">
+      <div id="cookies">0 cookies</div>
+      <div class="small" id="cps">0 cookies per second</div>
+    </div>
+
+    <div class="cookie-area" id="cookieArea">
+      <button id="cookie" aria-label="Bake a cookie">🍪</button>
+    </div>
+
+    <p id="message">Click the cookie to get started!</p>
+    <p>Cookies baked: <strong id="total">0</strong></p>
+    <p>Click power: <strong id="power">1</strong></p>
+  </section>
+
+  <section class="panel">
+    <h2 class="shop-title">🏪 Cookie Shop</h2>
+    <p class="small">Spend cookies to grow your empire!</p>
+    <div id="shop"></div>
+  </section>
+</main>
+
+<section class="panel" style="max-width:970px;margin:0 auto 20px;">
+  <h2>🏆 Achievements</h2>
+  <p id="achievement">Bake your first 10 cookies!</p>
+</section>
+
+<footer>
+  <p>🍪 Your cookie empire is automatically saved.</p>
+  <button class="reset" onclick="resetGame()">Reset Game</button>
+</footer>
+
+<script>
+let cookies = 0;
+let total = 0;
+let power = 1;
+let buildings = [0,0,0,0,0,0];
+let clickUpgrades = 0;
+
+const items = [
+  {name:"Cursor", emoji:"👆", base:15, cps:0.2, desc:"An automatic cookie clicker"},
+  {name:"Grandma", emoji:"👵", base:100, cps:1, desc:"Bakes cookies with love"},
+  {name:"Farm", emoji:"🌾", base:500, cps:5, desc:"Grows delicious cookie ingredients"},
+  {name:"Factory", emoji:"🏭", base:3000, cps:25, desc:"Mass produces cookies"},
+  {name:"Mine", emoji:"⛏️", base:10000, cps:100, desc:"Mines chocolate chips"},
+  {name:"Cookie Portal", emoji:"🌀", base:50000, cps:500, desc:"Summons cookies from another dimension"}
+];
+
+function cost(i) {
+  return Math.floor(items[i].base * Math.pow(1.15, buildings[i]));
+}
+
+function cps() {
+  return items.reduce((sum,item,i) => sum + item.cps * buildings[i],0);
+}
+
+function earn(amount) {
+  cookies += amount;
+  total += amount;
+}
+
+document.getElementById("cookie").addEventListener("click", e => {
+  earn(power);
+  const area = document.getElementById("cookieArea");
+  const rect = area.getBoundingClientRect();
+  const float = document.createElement("span");
+  float.className = "float";
+  float.textContent = "+" + power;
+  float.style.left = (e.clientX - rect.left - 10) + "px";
+  float.style.top = (e.clientY - rect.top - 10) + "px";
+  area.appendChild(float);
+  setTimeout(() => float.remove(),1000);
+  update();
+});
+
+function buy(i) {
+  let price = cost(i);
+  if(cookies < price) return;
+  cookies -= price;
+  buildings[i]++;
+  update();
+}
+
+function buyPower() {
+  let price = clickUpgradeCost();
+  if(cookies < price) return;
+  cookies -= price;
+  power += 1;
+  clickUpgrades++;
+  update();
+}
+
+function clickUpgradeCost() {
+  return Math.floor(50 * Math.pow(2,clickUpgrades));
+}
+
+function update() {
+  document.getElementById("cookies").textContent =
+    Math.floor(cookies).toLocaleString() + " cookies";
+  document.getElementById("cps").textContent =
+    cps().toFixed(1) + " cookies per second";
+  document.getElementById("total").textContent =
+    Math.floor(total).toLocaleString();
+  document.getElementById("power").textContent = power;
+
+  let shop = document.getElementById("shop");
+  shop.innerHTML = "";
+
+  items.forEach((item,i) => {
+    let price = cost(i);
+    let button = document.createElement("button");
+    button.className = "upgrade";
+    button.disabled = cookies < price;
+    button.innerHTML = `
+      <span class="emoji">${item.emoji}</span>
+      <span class="details">
+        <strong>${item.name} (${buildings[i]})</strong>
+        <small>${item.desc}</small>
+        <small>+${item.cps} cookies/sec</small>
+        <small>🍪 ${price.toLocaleString()} cookies</small>
+      </span>`;
+    button.onclick = () => buy(i);
+    shop.appendChild(button);
+  });
+
+  let price = clickUpgradeCost();
+  let powerButton = document.createElement("button");
+  powerButton.className = "upgrade";
+  powerButton.disabled = cookies < price;
+  powerButton.innerHTML = `
+    <span class="emoji">💪</span>
+    <span class="details">
+      <strong>Stronger Clicks (${clickUpgrades})</strong>
+      <small>+1 cookie per click</small>
+      <small>🍪 ${price.toLocaleString()} cookies</small>
+    </span>`;
+  powerButton.onclick = buyPower;
+  shop.appendChild(powerButton);
+
+  let achievement = "Bake your first 10 cookies!";
+  if(total >= 1000000) achievement = "👑 Cookie Legend! 1 million cookies!";
+  else if(total >= 100000) achievement = "🏰 Cookie Empire! 100,000 cookies!";
+  else if(total >= 10000) achievement = "🎉 Cookie Master! 10,000 cookies!";
+  else if(total >= 1000) achievement = "⭐ Cookie Expert! 1,000 cookies!";
+  else if(total >= 100) achievement = "🥇 Cookie Apprentice! 100 cookies!";
+  else if(total >= 10) achievement = "🍪 First 10 cookies baked!";
+  document.getElementById("achievement").textContent = achievement;
+}
+
+function save() {
+  localStorage.setItem("cookieClickerSave",JSON.stringify({
+    cookies,total,power,buildings,clickUpgrades,time:Date.now()
+  }));
+}
+
+function load() {
+  try {
+    let data = JSON.parse(localStorage.getItem("cookieClickerSave"));
+    if(!data) return;
+    cookies = Number(data.cookies) || 0;
+    total = Number(data.total) || 0;
+    power = Math.max(1,Number(data.power) || 1);
+    buildings = Array.isArray(data.buildings) && data.buildings.length === 6
+      ? data.buildings.map(x => Math.max(0,Number(x)||0)) : buildings;
+    clickUpgrades = Number(data.clickUpgrades) || 0;
+
+    // Earn some cookies while you were away (maximum 8 hours).
+    let away = Math.min(28800,Math.max(0,(Date.now()-(data.time||Date.now()))/1000));
+    let bonus = cps()*away;
+    earn(bonus);
+    if(bonus > 0) {
+      document.getElementById("message").textContent =
+        "Welcome back! You earned " + Math.floor(bonus) + " cookies while away!";
+    }
+  } catch(e) {
+    console.log("Save could not be loaded.");
+  }
+}
+
+function resetGame() {
+  if(!confirm("Are you sure you want to reset your cookie empire?")) return;
+  cookies = 0;
+  total = 0;
+  power = 1;
+  buildings = [0,0,0,0,0,0];
+  clickUpgrades = 0;
+  localStorage.removeItem("cookieClickerSave");
+  update();
+  document.getElementById("message").textContent = "A fresh cookie adventure begins!";
+}
+
+load();
+update();
+
+setInterval(() => {
+  earn(cps()/10);
+  update();
+},100);
+
+setInterval(save,3000);
+window.addEventListener("beforeunload",save);
+</script>
+</body>
+</html>
+
